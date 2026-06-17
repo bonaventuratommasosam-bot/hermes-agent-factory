@@ -119,6 +119,29 @@ After generating all agents:
 1. `find ~/.hermes/packs/<name>/ -type f | wc -l` — should be 15+ files
 2. Verify `pack.yaml` lists all agents
 3. Verify each agent profile has SOUL + GOAL + skills + config
+4. **Run skill validation:** `for f in ~/.hermes/packs/<name>/agents/*/skills/*/SKILL.md; do python3 -c "import yaml; yaml.safe_load(open('$f').read().split('---')[1])" && echo "✓ $f" || echo "✗ INVALID: $f"; done`
+5. **Generate deploy script** from template `src/agent_factory/templates/deploy.sh`:
+   - Replace `{{PACK_NAME}}` with actual pack name
+   - Replace `{{AGENT_LIST}}` with comma-separated agent names
+   - Replace `{{AGENT_ARRAY}}` with bash array of agent names
+   - Replace `{{AGENT_JSON_ARRAY}}` with JSON array of agent objects
+   - Replace `{{ROUTES_JSON}}` with inline JSON from `bus/routes.json`
+   - Write final script to `~/.hermes/packs/<name>/deploy.sh`
+   - `chmod +x ~/.hermes/packs/<name>/deploy.sh`
+
+### Pack Post-Generation Summary
+
+Show the user:
+```
+✓ Pack generated: ~/.hermes/packs/<name>/
+✓ <N> agents: <agent-1> (<role>), <agent-2> (<role>), ...
+✓ Coordinator: <name>
+✓ Bus: <N> routes configured
+✓ deploy.sh ready — run to deploy all agents
+
+To deploy: bash ~/.hermes/packs/<name>/deploy.sh
+To add Telegram tokens after deploy: edit each ~/.hermes/profiles/<agent>/.env
+```
 
 ## How It Works
 
