@@ -22,197 +22,129 @@ Meta-agent that generates complete Hermes Agent profiles. Describe the agent you
 
 ## How It Works
 
-Two phases:
-1. **Interview** — 5-8 targeted questions to understand the domain and requirements
-2. **Generate** — Write all profile files based on interview answers
+Three phases:
+1. **Extract** — Parse the user's initial description. Extract domain, tasks, tone, integrations automatically. Most answers are already in the first message.
+2. **Interview** — Only ask what's missing. 2-4 questions max, never 7.
+3. **Generate** — Write all profile files with domain-specific knowledge injected.
 
 ---
 
-## Phase 1: Interview
+## Phase 1: Extract
 
-Ask these questions ONE AT A TIME via `clarify()`. Do not ask all at once. Adapt questions based on the user's initial description.
+Before asking ANY question, extract everything you can from the user's initial message:
 
-### Q1 — Domain & Core Task
-"What's the ONE main thing this agent should do? Be specific — not 'help with marketing' but 'write 3 LinkedIn posts per week and track engagement.'"
+- **Domain**: restaurant, legal, finance, coding, content, security, gaming, etc.
+- **Core task**: the ONE thing they described
+- **Tone**: formal, casual, technical, friendly — infer from domain
+- **Integrations**: any service mentioned (GitHub, Google Sheets, Telegram, etc.)
+- **Triggers**: scheduled, on-demand, event-driven — infer from task
+- **Name**: derive from domain + task if not given (e.g. "restaurant inventory" → `groot-brigata`)
 
-### Q2 — Personality & Tone
-"How should this agent talk? Pick a vibe: professional/formal, casual/friendly, technical/precise, or something custom. What's their role identity? (e.g. 'senior DevOps engineer', 'creative director', 'legal analyst')"
+**Fill a mental matrix before proceeding.** Only ask questions for empty cells.
 
-### Q3 — Skills & Capabilities
-"What specific skills does it need? Choose from: writing, coding, data analysis, research, scheduling, monitoring, content creation, calculation, compliance checking, translation, summarization. Or describe custom ones."
+### Domain Knowledge Injection
 
-### Q4 — Triggers & Automation
-"Should this agent run on a schedule (cron), react to triggers (webhooks, messages), or only respond on demand? If scheduled, how often and what triggers it?"
+Based on the extracted domain, pre-load relevant patterns:
 
-### Q5 — Integrations
-"What external services does it connect to? Examples: Google Sheets, GitHub, email, Stripe, Telegram, Slack, Calendly, weather API, custom REST APIs."
+| Domain | Skill patterns | Common integrations | Cron examples |
+|--------|---------------|---------------------|---------------|
+| Restaurant | Inventory tracking, food cost calc, menu analysis, HACCP compliance | Google Sheets, Telegram | Daily inventory check, weekly cost report |
+| Legal | Contract review, GDPR check, compliance audit, clause extraction | Email, Google Drive | Weekly compliance scan |
+| Finance | Portfolio analysis, risk scoring, market monitoring, P&L calc | APIs, Google Sheets | Daily market open, weekly summary |
+| Coding | Code review, PR analysis, security scan, refactoring | GitHub, GitLab | On push trigger, weekly dep audit |
+| Content | Post generation, scheduling, engagement tracking, A/B testing | X/Twitter, LinkedIn, Telegram | Daily post, weekly analytics |
+| Security | Vulnerability scan, secret detection, dependency audit, pentest report | GitHub, Slack | Every 6h scan, weekly report |
+| DevOps | Log monitoring, health check, deploy verification, incident response | SSH, APIs, Slack | Every 5m health, daily backup check |
 
-### Q6 — Constraints & Boundaries
-"Anything this agent should NEVER do? Sensitive data boundaries? Compliance requirements? Specific rules to follow?"
-
-### Q7 — Name
-"Pick a name for this agent (lowercase, hyphens OK). This becomes the profile name."
-
-**Smart-skip:** If the user's initial request already answers a question clearly, skip it. Only ask what's not yet clear. If user says "just do it" or shows impatience, do Q1 + Q2 + Q7 minimum, then generate.
-
-**STOP after each question.** Wait for the user's response before asking the next one.
+Use these patterns when generating skills — don't start from scratch. A restaurant agent gets `food-cost` and `inventory-tracker` skills with real formulas. A security agent gets OWASP patterns.
 
 ---
 
-## Phase 2: Generate
+## Phase 2: Interview
 
-After the interview, generate these files under the profile directory. Use `terminal()` to create the profile directory, then `write_file()` for each file.
+From the extraction, identify gaps. Ask ONLY for missing info. Maximum 4 questions, ideally 2-3.
 
-### Profile Path
-```
-~/.hermes/profiles/<profile-name>/
-```
+### Gap questions (ask only what's missing):
 
-### Files to Generate
+**Missing core task?** → "What's the ONE main thing this agent should do?"
 
-#### 1. SOUL.md — Identity & Personality
+**Missing personality?** → "How should they talk? Pick: professional, casual, technical, or custom."
 
-Template:
-```markdown
-# <AGENT-NAME> — <ROLE>
+**Missing name?** → "What should we call this agent? (lowercase, hyphens OK)"
 
-## CHI SEI
-<One paragraph: who this agent is, its role, its purpose. Include the domain context.>
+**Missing triggers?** → "Run on schedule, on demand, or both? Any specific timing?"
 
-## PERSONALITÀ
-- **<trait>**: <description>
-- **<trait>**: <description>
-- **<trait>**: <description>
+**STOP after each question.** If user says "just generate it" or shows impatience — generate immediately with what you have. Fill gaps with domain-appropriate defaults.
 
-## COMPETENZE
-- <skill 1>
-- <skill 2>
-- <skill 3>
-- <skill 4>
+**Escape hatch:** User gave a full description with name, task, and domain? Skip ALL questions. Go straight to Phase 3.
 
-## LIMITI
-- <boundary 1>
-- <boundary 2>
-```
-
-#### 2. GOAL.md — Objectives & Success Metrics
-
-```markdown
-# <AGENT-NAME> — Goals
-
-## Primary Objective
-<One sentence: the core mission>
-
-## Success Metrics
-- <metric 1>
-- <metric 2>
-- <metric 3>
-
-## Recurring Tasks
-- <task 1> — <frequency>
-- <task 2> — <frequency>
-
-## Constraints
-- <constraint 1>
-```
-
-#### 3. Skills (3-5 files)
-
-Each skill in `skills/<skill-name>/SKILL.md`. Minimal viable skill:
-
-```markdown
----
-name: <skill-name>
-description: "<one-line description>"
 ---
 
-# <Skill Title>
+## Phase 3: Generate
 
-## When to Use
-- <trigger 1>
-- <trigger 2>
+After extraction (+ optional interview), generate all files. Use the domain patterns from Phase 1 to make skills realistic and useful.
 
-## Steps
-1. <step>
-2. <step>
-3. <step>
+### Step 0: Detect provider
 
-## Pitfalls
-- <pitfall>
+Check the current user's config before generating:
+```bash
+hermes config get model.provider 2>/dev/null || echo "deepseek"
+hermes config get model.default 2>/dev/null || echo "deepseek-v4-pro"
 ```
 
-Skills should match what was discussed in the interview. Use the domain context to make them realistic.
+Use these values in the generated `config.yaml` — don't hardcode DeepSeek.
 
-#### 4. Cron Jobs
-
-If the user wants scheduled tasks, create `cron/jobs.json`:
-
-```json
-{
-  "jobs": [
-    {
-      "schedule": "<cron or duration>",
-      "prompt": "<what to do>",
-      "deliver": "local"
-    }
-  ]
-}
-```
-
-#### 5. Config (config.yaml)
-
-```yaml
-model:
-  default: deepseek-v4-pro
-  provider: custom:deepseek
-
-agent:
-  max_turns: 60
-
-gateway:
-  platforms:
-    telegram:
-      enabled: true
-```
-
-#### 6. .env.EXAMPLE
-
-List all required environment variables with comments:
+### Step 1: Create directory structure
 
 ```bash
-# LLM Provider
-DEEPSEEK_API_KEY=sk-...
-
-# Telegram
-TELEGRAM_TOKEN=123:abc
-
-# <Integration-specific vars>
-# GOOGLE_SHEETS_CREDENTIALS=/path/to/credentials.json
+mkdir -p ~/.hermes/profiles/<name>/skills/{<skill-1>,<skill-2>,<skill-3>}
+mkdir -p ~/.hermes/profiles/<name>/cron
 ```
+
+### Files to Generate (in order)
+
+**SOUL.md** — Identity. Use the domain to inject realistic competencies. A restaurant agent mentions "food cost %", "par levels", "supplier lead times". A security agent mentions "OWASP", "CVE database", "MITRE ATT&CK".
+
+**GOAL.md** — Objectives with measurable metrics. Not "be helpful" but "reduce food waste by 15%" or "catch 100% of critical CVEs before merge".
+
+**Skills (3-5)** — Each skill MUST have:
+- Realistic trigger conditions (not generic "when user asks")
+- Concrete steps with actual tools mentioned (`terminal()`, `web_search()`, `read_file()`)
+- At least ONE domain-specific pitfall (e.g. "food cost calc doesn't include waste %")
+- Related config/env vars referenced
+
+**config.yaml** — Use detected provider/model. Enable appropriate gateway platforms based on integrations mentioned.
+
+**.env.EXAMPLE** — List every env var mentioned in skills, plus provider credentials. Add comments explaining where to get each key.
+
+**cron/jobs.json** (if scheduled) — Use realistic schedules from the domain table above.
 
 ---
 
-## Phase 3: Verify
+## Phase 4: Verify & Iterate
 
-After generating all files:
-1. Run `hermes profile show <name>` to verify the profile is recognized
-2. List the generated files: `find ~/.hermes/profiles/<name>/ -type f`
-3. Show a summary to the user:
-   - Profile name and path
-   - Number of skills generated
-   - Cron jobs created
-   - Environment variables needed
-   - Command to start: `hermes -p <name> gateway start` (or `hermes -p <name>` for CLI)
+1. Validate profile: `hermes profile show <name>`
+2. List files: `find ~/.hermes/profiles/<name>/ -type f | sort`
+3. Show summary to user:
+   - Profile name, path, provider
+   - Number of skills (list them)
+   - Cron jobs (if any)
+   - Env vars needed (count)
+   - Start command
+4. **Ask once:** "Want to add, remove, or modify any skill? I can also add cron jobs or tweak the personality."
+5. If user wants changes, loop back to the relevant generation step. Don't restart the interview.
 
 ---
 
 ## Common Pitfalls
 
-- **Don't ask too many questions.** Tommy hates walls of text. 5-7 questions max.
-- **Don't generate skills that don't match the domain.** A "restaurant inventory agent" doesn't need a "stock trading" skill.
-- **Don't over-engineer SOUL.md.** Keep personality traits to 3-4 bullet points.
-- **Profile directory must exist before writing files.** Create with `mkdir -p`.
-- **If the user interrupts mid-interview with "just generate it"**, skip remaining questions and generate with what you have. Fill gaps with reasonable defaults.
+- **Don't ask all 7 questions when 2 suffice.** Extract first. Interview is the fallback, not the default.
+- **Don't generate generic skills.** A "code review" skill without OWASP patterns is useless. A "food cost" skill without the formula (COGS / revenue × 100) is wrong. Inject domain knowledge.
+- **Don't hardcode the provider.** Always detect the user's current provider with `hermes config get`.
+- **Don't over-engineer SOUL.md.** 3-4 personality traits, 4-5 competencies, 2-3 limits. Brevity = clarity.
+- **Profile directory must exist before writing files.** Create all skill subdirectories in one `mkdir -p`.
+- **If user interrupts with "just generate it"**, skip remaining questions. Extract what you can, fill gaps with domain defaults, generate.
+- **The generation is NOT the end.** Always ask "want to modify anything?" after showing the summary.
 
 ## Verification Checklist
 

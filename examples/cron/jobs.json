@@ -1,0 +1,19 @@
+{
+  "jobs": [
+    {
+      "schedule": "0 9 * * 1",
+      "prompt": "Run full dependency audit (CVE check) on all monitored repos. Report critical vulnerabilities.",
+      "deliver": "local"
+    },
+    {
+      "schedule": "every 6h",
+      "prompt": "Scan all monitored repos for accidentally committed secrets. Check both latest commit and git history. Escalate critical findings.",
+      "deliver": "local"
+    },
+    {
+      "schedule": "0 18 * * 5",
+      "prompt": "Generate weekly security report: PRs reviewed, vulnerabilities found, secrets detected, dependencies audited. Summary for team.",
+      "deliver": "local"
+    }
+  ]
+}

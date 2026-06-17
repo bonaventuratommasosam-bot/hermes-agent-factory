@@ -1,0 +1,16 @@
+model:
+  default: deepseek-v4-pro
+  provider: custom:deepseek
+
+agent:
+  max_turns: 60
+
+gateway:
+  platforms:
+    telegram:
+      enabled: false
+
+github:
+  enabled: true
+  review_on_pr: true
+  auto_comment: true
