@@ -1,0 +1,8 @@
+name: hermes-agent-factory
+version: 0.1.0
+description: >-
+  Meta-agent that interviews users and generates complete Hermes Agent
+  profiles (SOUL, GOAL, skills, cron, config). Describe what you need
+  in plain language, get a ready-to-run agent profile.
+author: HermesBro (bonaventuratommasosam-bot)
+kind: standalone
