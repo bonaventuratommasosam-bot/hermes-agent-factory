@@ -19,6 +19,106 @@ Meta-agent that generates complete Hermes Agent profiles. Describe the agent you
 - User says "create an agent that...", "build me a bot for...", "I need an agent..."
 - User wants to generate a new Hermes profile from scratch
 - User wants to clone and customize an existing agent concept
+- **AGENT PACK:** User says "build me a team", "I need multiple agents", "create a squad for...", "restaurant system", "dev team", "marketing agency" → go to Phase 0 (Pack Mode)
+
+---
+
+## Phase 0: Pack Detection
+
+Before anything else, check: is this a single agent or a team?
+
+**Pack triggers:**
+- "team", "squad", "pack", "multiple agents", "system", "agency", "firm", "department"
+- Domain words that imply multiple roles: "restaurant management", "dev ops", "marketing + sales"
+- User mentions 2+ distinct roles in one request
+
+**If PACK detected → skip single-agent flow. Go to Phase 0A (Pack Interview).**
+
+### Pre-built Pack Templates
+
+These exist in `packs/<name>/pack.yaml`. If the user's request matches a template, offer to use it as base:
+
+| Template | Agents | For |
+|----------|--------|-----|
+| `restaurant` | Groot + Contabile + Lawrenzo | Inventory, accounting, HACCP |
+| `dev-shop` | Frank + Sentinel + Wannabe | Coding, security, R&D |
+| `marketing` | Wannabe + DesignBro + Ducato | Content, brand, analytics |
+
+### Phase 0A: Pack Interview
+
+Only 2-3 questions (pack generation is about scope, not details):
+
+**Q1 — Domain & Team Size**
+"What kind of team? Pick: restaurant, dev shop, marketing agency, legal firm, or describe custom. How many agents?"
+
+**Q2 — Must-Have Roles**
+"Any specific roles required? I'll fill the rest based on domain."
+
+**Q3 — Coordinator Name**
+"What should we call the team lead? (e.g. 'machiavelli', 'el-froggo')"
+
+Then generate all agents + bus + coordinator.
+
+---
+
+## Phase 0B: Pack Generate
+
+For each agent in the pack, follow the single-agent generation steps (SOUL, GOAL, skills, cron, config), then wire them together.
+
+### Pack Structure
+
+```
+~/.hermes/packs/<pack-name>/
+├── pack.yaml                  # Team manifest
+├── bus/
+│   └── routes.json            # Inter-agent routing
+├── agents/
+│   ├── <agent-1>/             # Full Hermes profile
+│   │   ├── SOUL.md
+│   │   ├── GOAL.md
+│   │   ├── skills/
+│   │   ├── cron/
+│   │   ├── config.yaml
+│   │   └── .env.EXAMPLE
+│   ├── <agent-2>/
+│   └── <agent-3>/
+└── coordinator/
+    ├── SOUL.md                # Team lead with routing rules
+    ├── GOAL.md
+    └── config.yaml
+```
+
+### Bus Configuration
+
+Create `bus/routes.json`:
+```json
+{
+  "type": "filesystem",
+  "path": "/opt/hermesbro/packs/<name>/bus/",
+  "routes": [
+    {
+      "from": "<agent-1>",
+      "to": "<agent-2>",
+      "trigger": "<event description>",
+      "action": "<what happens>"
+    }
+  ]
+}
+```
+
+### Coordinator Agent
+
+The coordinator SOUL.md MUST include:
+- `## ROUTING` section with keyword → agent mapping
+- `## ESCALATION` section for unresolved issues
+- Personality: decisive, delegates, never does the work itself
+
+### Pack Verification
+
+After generating all agents:
+1. `find ~/.hermes/packs/<name>/ -type f | wc -l` — should be 15+ files
+2. Verify `pack.yaml` lists all agents
+3. Verify each agent profile has SOUL + GOAL + skills + config
 
 ## How It Works
 
